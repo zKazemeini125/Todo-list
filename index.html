@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo List</title>
+    <link rel="shortcut icon" href="#" />
     <style>
       :root {
         font-family: "pro14-regular", "pro14-600", "pro14-700";
@@ -11,7 +12,7 @@
       }
       li {
         list-style: none;
-        min-height: 98px;
+        min-height: 92px;
       }
       button {
         text-transform: capitalize;
@@ -136,7 +137,8 @@
         align-items: center;
         margin-left: 10px;
       }
-      .closeModal {
+      .closeModal,
+      .closeToast {
         cursor: pointer;
         font-family:
           "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
@@ -315,7 +317,6 @@
                 type="button"
                 class="w-10 p-2 m-1 bg-green border border-green text-white"
                 id="storeTasks"
-                onclick="storeTask()"
                 disabled
               >
                 add task
@@ -324,7 +325,6 @@
                 type="button"
                 class="w-10 p-2 m-1 bg-cancel border border-cancel text-white"
                 id="cancelEdit"
-                onclick="cancelEditTask()"
                 style="display: none"
               >
                 cancel edit
@@ -339,12 +339,7 @@
                 id="searchInput"
                 placeholder="Search here..."
               />
-              <span
-                id="clearSearch"
-                onclick="clearinputSearch()"
-                style="visibility: hidden"
-                >X</span
-              >
+              <span id="clearSearch" style="visibility: hidden">X</span>
             </div>
             <div class="sortContainer">
               <label class="mx-1" for="sortTasks">Sort by:</label>
@@ -370,7 +365,7 @@
           class="d-flex flex-row justify-space-between align-items-center border-bottom border-lightgray pb-1 m-1"
         >
           <h5 id="modalTitle"></h5>
-          <div class="closeModal" onclick="colseModal()">X</div>
+          <div class="closeModal">X</div>
         </div>
         <div id="modalBody"></div>
         <div class="d-flex justify-end" id="modalButtonHolder"></div>
@@ -381,8 +376,8 @@
       id="toast"
     >
       <p id="toastText"></p>
-      <span id="closeToast" class="m-1" onclick="closeToast()">X</span>
+      <span class="closeToast" class="m-1">X</span>
     </div>
-    <script src="index.js"></script>
+    <script type="module" src="index.js"></script>
   </body>
 </html>
