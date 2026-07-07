@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo List</title>
     <style>
-    :root {
-        font-family:
-          "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+      :root {
+        font-family: "pro14-regular", "pro14-600", "pro14-700";
         font-size: 20px;
       }
       li {
@@ -69,6 +68,12 @@
         justify-content: center;
         align-items: center;
       }
+      .justify-space-between {
+        justify-content: space-between;
+      }
+      .align-items-center {
+        align-items: center;
+      }
       .align-end {
         align-items: flex-end;
       }
@@ -77,6 +82,9 @@
       }
       .p-2 {
         padding: 10px;
+      }
+      .pb-1 {
+        padding-bottom: 1rem;
       }
       .bg-green {
         background-color: rgb(10, 165, 10);
@@ -98,7 +106,7 @@
       .border-lightgray {
         border-color: lightgray !important;
       }
-      .br-b {
+      .border-bottom {
         border-bottom: 1px solid black;
       }
       .text-white {
@@ -129,10 +137,9 @@
         margin-left: 10px;
       }
       .closeModal {
-        float: right;
         cursor: pointer;
-        width: 30px;
-        height: 30px;
+        font-family:
+          "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
       }
 
       #inputTitle,
@@ -160,16 +167,20 @@
         border: none;
         outline: none;
       }
-      #clear {
+      #clearSearch {
         font-size: 0.9rem;
         border: none;
         outline: none;
         cursor: pointer;
+        font-family:
+          "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
       }
+
       #taskList {
         list-style: none;
         padding: 0;
       }
+
       #modal {
         display: none;
         position: fixed;
@@ -181,20 +192,108 @@
         z-index: 1;
         background-color: rgb(0, 0, 0, 0.6);
       }
+
       #modalContent {
         width: 60%;
-        height: 40%;
+        height: max-content;
         margin: 0 auto;
         margin-top: 4rem;
         border-radius: 1rem;
         background-color: white;
         padding: 1rem;
+        position: relative;
       }
+
       #modalTitle {
         font-family: "Courier New", Courier, monospace;
+        margin: 0;
       }
+
       #modalSpan {
         color: brown;
+      }
+
+      #modalButtonHolder {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+      }
+
+      #toast {
+        background-color: rgb(55, 55, 55);
+        width: max-content;
+        z-index: 1;
+        border-radius: 0.5rem;
+        color: aliceblue;
+        font-size: 0.9rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        position: fixed;
+        right: 0;
+        bottom: 5px;
+        visibility: hidden;
+      }
+
+      #toast > span {
+        align-self: flex-start;
+        font-family:
+          "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        margin: 10px;
+      }
+      #toast > p {
+        padding-right: 10px;
+        margin: 1rem;
+      }
+      #toast.show {
+        visibility: visible;
+        animation:
+          fadeIn 0.5s,
+          fadeOut 0.3s 2.5s;
+      }
+      #toast.error {
+        background-color: coral;
+        color: white;
+      }
+      #toast.addSuccessful,
+      #toast.updateSuccessful,
+      #toast.deleteSuccessful {
+        background-color: forestgreen;
+        color: white;
+      }
+
+      @font-face {
+        font-family: "pro14-regular";
+        src: "fonts/source-code-pro-v14-latin-regular.woff2";
+      }
+      @font-face {
+        font-family: "pro14-600";
+        src: "fonts/source-sans-pro-v14-latin-600.woff2";
+      }
+      @font-face {
+        font-family: "pro14-700";
+        src: "fonts/source-sans-pro-v14-latin-700.woff2";
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          right: -300px;
+        }
+        to {
+          opacity: 1;
+          right: 0;
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+          right: 0;
+        }
+        to {
+          opacity: 0;
+          right: -300px;
+        }
       }
     </style>
   </head>
@@ -215,8 +314,8 @@
               <button
                 type="button"
                 class="w-10 p-2 m-1 bg-green border border-green text-white"
-                id="addButton"
-                onclick="addTask()"
+                id="storeTasks"
+                onclick="storeTask()"
                 disabled
               >
                 add task
@@ -241,18 +340,16 @@
                 placeholder="Search here..."
               />
               <span
-                id="clear"
-                onclick="clearSearchInput()"
+                id="clearSearch"
+                onclick="clearinputSearch()"
                 style="visibility: hidden"
                 >X</span
               >
             </div>
             <div class="sortContainer">
               <label class="mx-1" for="sortTasks">Sort by:</label>
-              <select name="sortTasks" id="sort" class="p-1">
+              <select name="sortTasks" id="selectSort" class="p-1">
                 <option value="none" selected>none</option>
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
                 <option value="az">Title a-z</option>
                 <option value="za">Title z-a</option>
               </select>
@@ -269,11 +366,22 @@
     </div>
     <div id="modal">
       <div id="modalContent">
-        <span class="closeModal" onclick="colseModal()">X</span>
-        <h5 id="modalTitle"></h5>
-        <p id="modalBody"></p>
+        <div
+          class="d-flex flex-row justify-space-between align-items-center border-bottom border-lightgray pb-1 m-1"
+        >
+          <h5 id="modalTitle"></h5>
+          <div class="closeModal" onclick="colseModal()">X</div>
+        </div>
+        <div id="modalBody"></div>
         <div class="d-flex justify-end" id="modalButtonHolder"></div>
       </div>
+    </div>
+    <div
+      class="d-flex flex-row justify-space-between align-items-center"
+      id="toast"
+    >
+      <p id="toastText"></p>
+      <span id="closeToast" class="m-1" onclick="closeToast()">X</span>
     </div>
     <script src="index.js"></script>
   </body>

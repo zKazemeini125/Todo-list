@@ -1,266 +1,325 @@
 //#region Definition of constants
-const titleInput = document.getElementById("inputTitle");
-const bodyInput = document.getElementById("inputBody");
-const taskList = document.getElementById("taskList");
-const addButton = document.getElementById("addButton");
+const titleTaskInput = document.getElementById("inputTitle");
+const bodyTaskInput = document.getElementById("inputBody");
+const taskListElement = document.getElementById("taskList");
+const storeTaskButton = document.getElementById("storeTasks");
 const cancelEditButton = document.getElementById("cancelEdit");
+//! sorting & filtring
 const searchInput = document.getElementById("searchInput");
-const clearButt = document.getElementById("clear");
-const sortList = document.getElementById("sort");
+const clearSearchButton = document.getElementById("clearSearch");
+const sortListElement = document.getElementById("selectSort");
+
 //! modal props
 const modal = document.getElementById("modal");
 const modalTitle = document.getElementById("modalTitle");
 const modalBody = document.getElementById("modalBody");
-const modalButtons = document.getElementById("modalButtonHolder");
-//#endregion
+const modalButtonHolder = document.getElementById("modalButtonHolder");
 
-//#region Definition of variables
+//! toast props
+//#endregion
+const toast = document.getElementById("toast");
+const toastTextElement = document.getElementById("toastText");
+const toastCloseButton = document.getElementById("closeToast");
+
+//#region Variables
+let id = 0;
 let state = {
   tasks: [],
-  isEditing: false,
   editingId: null,
+  isEditing: false,
   deletingId: null,
+  searchText: null,
+  //isShowToast: false,
 };
-
-let id = 0;
-let title = titleInput.value;
-let body = bodyInput.value;
 let constantStrings = {
-  addTaskStr: "add task",
-  updateTaskStr: "update task",
-  deleteTitle: "Delete Task",
+  addTask: "add task",
+  updateTask: "update task",
+  deleteModalTitle: "Delete Task",
+  toastUpdateTask: "Edit completed successfully.",
+  toastAddTask: "New task added successfully.",
+  toastDeleteTask: "Task deletion was successful.",
+  toastError: "The operation encountered an error.",
 };
 //#endregion
 
-//#region Initial function calls
-document.addEventListener("DOMContentLoaded", () => {
-  loadData();
-  checkTaskList();
-  resetForm();
-  setId();
-});
+//#region addEventListener
+titleTaskInput.addEventListener("input", validateInputs);
+bodyTaskInput.addEventListener("input", validateInputs);
+document.addEventListener("DOMContentLoaded", initialSetting);
+searchInput.addEventListener("input", filterTasks);
+sortListElement.addEventListener("change", () => sort());
 //#endregion
 
-//! Functions
-//#region The body of the functions that are called first.
-function loadData() {
-  const tasksTemp = getItemLS();
-
-  if (tasksTemp && tasksTemp.length > 0) {
-    state.tasks = tasksTemp;
-    sortTasks();
-  }
+//#region Initial form settings
+function initialSetting() {
+  initLoadData();
+  validateInputs();
+  setId();
+  sort();
+  resetForm();
 }
 
-//! Check if the task list is empty to display the empty list message
-function checkTaskList() {
-  const emptyMsg = document.getElementById("emptyMsg");
-  emptyMsg.style.display = state.tasks.length == 0 ? "block" : "none";
+function validateInputs() {
+  titleTaskInput.value.trim() || bodyTaskInput.value.trim()
+    ? (storeTaskButton.disabled = false)
+    : (storeTaskButton.disabled = true);
 }
-
-function checkInputs() {
-  titleInput.value.trim() || bodyInput.value.trim()
-    ? (addButton.disabled = false)
-    : (addButton.disabled = true);
-}
-titleInput.addEventListener("input", checkInputs);
-bodyInput.addEventListener("input", checkInputs);
 
 function setId() {
-  const tasksTemp = getItemLS();
-  let tempId = [];
-
-  if (tasksTemp && tasksTemp.length > 0) {
-    id = tasksTemp.length + 1;
-    tasksTemp.forEach((t) => {
-      tempId.push(t.id);
+  id++;
+  let IDs = [];
+  if (state.tasks && state.tasks.length > 0) {
+    id = state.tasks.length + 1;
+    state.tasks.forEach((element) => {
+      IDs.push(element.id);
     });
-    loop1: for (let index = tasksTemp.length; index >= 0; index--) {
-      if (tempId.includes(id)) id--;
-      else break loop1;
-    }
-    loop2: for (let i = 0; i < tasksTemp.length; i++) {
-      if (tempId.includes(id)) id++;
+
+    loop2: for (let index = state.tasks.length; index >= 0; index--) {
+      if (IDs.includes(id)) id--;
       else break loop2;
     }
-  }
-}
-//#endregion
-
-//#region CRUD
-function addTask() {
-  if (!state.isEditing) {
-    setId();
-    state.tasks.push({
-      id: id,
-      title: titleInput.value,
-      body: bodyInput.value,
-    });
-    id++;
-    setItemLS();
-    sortTasks();
-    resetForm();
-  } else {
-    tasks.splice(taskIndex, 1, {
-      title: titleInput.value,
-      body: bodyInput.value,
-      id: task.id, //چون id یک مقدار عددی است spread نمیشود باید حتما براش مقدار قرار داده شود
-    });
-    setItemLS();
-    state.isEditing = false;
-    addButton.innerText = constantStrings.addTaskStr;
-    cancelEditButton.style.display = "none";
-    state.editingId = null;
-    sortTasks();
-    resetForm();
+    loop1: for (let index = 0; index < state.tasks.length; index++) {
+      if (IDs.includes(id)) id++;
+      else break loop1;
+    }
   }
 }
 
-function searchTask(e) {
-  const value = e.target.value.trim().toLowerCase();
-  const searchResult = tasks.filter((item) => {
-    return (
-      item.title.trim().toLowerCase().includes(value) ||
-      item.body.trim().toLowerCase().includes(value)
-    );
-  });
-  sortTasks(searchResult);
+function initLoadData() {
+  const temp = loadTasks();
 
-  if (searchInput.value && searchInput.value.length > 0)
-    clearButt.style.visibility = "visible";
-  else clearButt.style.visibility = "hidden";
-}
-searchInput.addEventListener("input", searchTask);
-
-function setItemLS() {
-  // localStorage.setItem
-  localStorage.setItem("state.tasks", JSON.stringify(state.tasks));
+  if (temp && temp.length > 0) {
+    state.tasks = temp;
+  }
 }
 
-function getItemLS() {
-  // localStorage.getItem
-  return JSON.parse(localStorage.getItem("tasks"));
+function toggleEmptyMsg() {
+  const emptyMsg = document.getElementById("emptyMsg");
+  emptyMsg.style.display = state.tasks.length === 0 ? "block" : "none";
 }
 
-function renderList(list = tasks) {
-  checkTaskList();
-  taskList.innerHTML = "";
-  for (const item of list) {
-    // باید برای دکمه حتما type تعریف کنی اگر نه به صورت پیش فرض میاد یک نوع وقتی نوع دکمه را مشخص نکنی، به صورت پیش‌فرض type="submit" است و فرم را ارسال می‌کند.
+function renderTaskList(list = state.tasks) {
+  toggleEmptyMsg();
+  taskListElement.innerHTML = "";
+  for (const element of list) {
     const li = Object.assign(document.createElement("li"), {
-      id: item.id,
-      innerHTML: `<div class="flex-row br-b border-lightgray p-2">
+      id: element.id,
+      innerHTML: `<div class="flex-row border-bottom border-lightgray p-2">
               <div class="flex-col w-80" style="{height: 100%}">
-                <h4 class="m-1 titleList">${item.title}</h4>
-                <p class="m-1 bodyList">${item.body}</p>
+                <h4 class="m-1 titleList">${highlight(element.title)}</h4>
+                <p class="m-1 bodyList">${highlight(element.body)}</p>
                 </div>
                 <div class="flex-col w-20 justify-center align-end">
                   <div class="flex-row actionContainer">
-                    <button type='button' class="m-1" onclick=edit(${item.id}) ${state.editingId == item.id ? "disabled" : ""}>edit</button>
-                    <button type='button' class="m-1" onclick=showDeleteModal(${item.id}) ${state.editingId == item.id ? "disabled" : ""} >delet</button>
+                    <button type='button' class="m-1" onclick=toggleEditMode(${element.id}) ${state.editingId == element.id ? "disabled" : ""}>edit</button>
+                    <button type='button' class="m-1" onclick=openDeleteModal(${element.id}) ${state.editingId == element.id ? "disabled" : ""} >delete</button>
                     </div>
                     </div>
                     </div>`,
     });
-    taskList.appendChild(li);
+    taskListElement.appendChild(li);
   }
-}
-
-function deleteTask() {
-  tasks = tasks.filter((task) => task.id != deletingId);
-  setItemLS();
-  sortTasks();
-  colseModal();
-}
-
-function edit(taskNumber) {
-  state.editingId = taskNumber;
-  let task = state.tasks.find((item) => item.id == taskNumber);
-  let taskIndex = state.tasks.findIndex((item) => item.id == taskNumber);
-  titleInput.value = task.title;
-  bodyInput.value = task.body;
-  state.isEditing = true;
-  addButton.innerText = constantStrings.updateTaskStr;
-  cancelEditButton.style.display = "block";
-
-  checkInputs();
-  //renderList();
-  sortTasks();
-}
-//#endregion
-
-//#region Optimize form display
-function cancelEditTask() {
-  cancelEditButton.style.display = "none";
-  addButton.innerText = constantStrings.addTaskStr;
-  state.isEditing = false;
-  state.editingId = null;
-  //renderList();
-  sortTasks();
-  resetForm();
 }
 
 function resetForm() {
-  titleInput.value = null;
-  bodyInput.value = null;
-  addButton.disabled = true;
+  titleTaskInput.value = null;
+  bodyTaskInput.value = null;
+  storeTaskButton.disabled = true;
+  state.editingId = null;
+  state.isEditing = false;
   searchInput.value = null;
+  state.searchText = null;
 }
 
-function clearSearchInput() {
-  searchInput.value = "";
-  clearButt.style.visibility = "hidden";
-  //renderList();
-  sortTasks();
+//#endregion
+
+//#region CRUD
+function storeTask() {
+  if (!state.isEditing) createTask();
+  else updateTask();
 }
 
-function sortTasks(list = state.tasks) {
-  switch (sortList.value) {
-    case "newest":
-      const newest = [...list].sort((a, b) => b.id - a.id); // Newest
-      renderList(newest);
+function createTask() {
+  try {
+    state.tasks.push({
+      id: id,
+      title: titleTaskInput.value,
+      body: bodyTaskInput.value,
+    });
+    saveTasks();
+    openToast("addSuccessful");
+    setId();
+    sort();
+    resetForm();
+  } catch (e) {
+    console.log(e);
+    openToast("error");
+  }
+}
 
-      break;
-    case "oldest":
-      const oldest = [...list].sort((a, b) => a.id - b.id); // Oldest
-      renderList(oldest);
-      break;
+function updateTask() {
+  const taskindex = state.tasks.findIndex((t) => t.id === state.editingId);
+  state.tasks.splice(taskindex, 1, {
+    id: state.editingId,
+    title: titleTaskInput.value,
+    body: bodyTaskInput.value,
+  });
+  saveTasks();
+  openToast("updateSuccessful");
+  cancelEditButton.style.display = "none";
+  storeTaskButton.innerText = constantStrings.addTask;
+  resetForm();
+  sort();
+}
 
+function deleteTask() {
+  const tempList = state.tasks.filter((t) => t.id != state.deletingId);
+  state.tasks = tempList;
+  modal.style.display = "none";
+  saveTasks();
+  openToast("deleteSuccessful");
+  sort();
+  resetForm();
+}
+
+function filterTasks(e) {
+  state.searchText = e.target.value;
+  const searchList = state.tasks.filter((element) => {
+    return (
+      element.title.trim().toLowerCase().includes(state.searchText) ||
+      element.body.trim().toLowerCase().includes(state.searchText)
+    );
+  });
+
+  sort(searchList);
+
+  if (searchInput.value && searchInput.value.length > 0) {
+    clearSearchButton.style.visibility = "visible";
+  } else clearSearchButton.style.visibility = "hidden";
+}
+
+function sort(list = state.tasks) {
+  console.log(list);
+
+  switch (sortListElement.value) {
     case "az":
-      const aToZ = [...list].sort((a, b) => a.title.localeCompare(b.title)); // A to Z
-      renderList(aToZ);
+      const AToZ = [...list].sort((a, b) => {
+        return a.title.localeCompare(b.title);
+      });
+      renderTaskList(AToZ);
       break;
-
     case "za":
-      const zToA = [...list].sort((a, b) => b.title.localeCompare(a.title)); // Z to A
-      renderList(zToA);
+      const ZToA = [...list].sort((a, b) => {
+        return b.title.localeCompare(a.title);
+      });
+      renderTaskList(ZToA);
       break;
-
     default:
-      renderList(list);
+      renderTaskList(list);
       break;
   }
 }
-sortList.addEventListener("change", () => sortTasks());
 //#endregion
 
-//#region Modal
-//! کنترل نمایش مدال برای دیلیت
-function showDeleteModal(taskNumber) {
-  deletingId = taskNumber;
-  task = tasks.find((item) => item.id === deletingId);
-  setDeletModal(task);
-  modal.style.display = "block";
+//#region Local storage
+function saveTasks() {
+  localStorage.setItem("tasks", JSON.stringify(state.tasks));
 }
 
-function setDeletModal(Itask) {
-  modalTitle.innerText = constantStrings.deleteTitle;
-  modalBody.innerHTML = `Are you sure you want to delete ${Itask.title} from the task list?`;
-  modalButtons.innerHTML = `<button type="button" class="m-1" onclick="deleteTask()">delete</button>
-          <button type="button" class="m-1" onclick="colseModal()">cancel</button>`;
+function loadTasks() {
+  return JSON.parse(localStorage.getItem("tasks"));
+}
+//#endregion
+
+//#region Display control
+function toggleEditMode(taskId) {
+  state.editingId = taskId;
+  cancelEditButton.style.display = "block";
+  storeTaskButton.innerText = constantStrings.updateTask;
+  const task = state.tasks.find((t) => t.id === state.editingId);
+  titleTaskInput.value = task.title;
+  bodyTaskInput.value = task.body;
+  state.isEditing = true;
+  location.hash = "#formAria";
+
+  titleTaskInput.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+  titleTaskInput.focus();
+  sort();
+}
+
+function openDeleteModal(taskId) {
+  modal.style.display = "block";
+  state.deletingId = taskId;
+  modalTitle.innerText = constantStrings.deleteModalTitle;
+  const selectedTask = state.tasks.find((t) => t.id === taskId);
+  modalBody.innerHTML = `<p>Are you sure you want to delete 
+  <span style="text-decoration: underline; font-weight: bolder; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; 
+  -webkit-line-clamp: 1;">"${selectedTask.title}"</span>
+   from task list?</p>
+   <p style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; 
+  -webkit-line-clamp: 2; margin-bottom: 2rem">${selectedTask.body}</p>`;
+  modalButtonHolder.innerHTML = `<button type="button" class="m-1" onclick="deleteTask()">confirm</button>`;
 }
 
 function colseModal() {
+  state.deletingId = null;
   modal.style.display = "none";
+}
+
+function cancelEditTask() {
+  storeTaskButton.innerText = constantStrings.addTask;
+  cancelEditButton.style.display = "none";
+  resetForm();
+  sort();
+}
+
+function highlight(text) {
+  if (!state.searchText) return text;
+  const regex = new RegExp(`(${state.searchText})`, "gi");
+  return text.replace(regex, "<mark>$1</mark>");
+}
+
+function clearinputSearch() {
+  searchInput.value = null;
+  state.searchText = null;
+  clearSearchButton.style.visibility = "hidden";
+  sort();
+}
+
+function closeToast() {
+  toast.classList.remove(
+    "show",
+    "error",
+    "addSuccessful",
+    "updateSuccessful",
+    "deleteSuccessful",
+  );
+}
+
+function openToast(type) {
+  toast.classList.add("show");
+  toast.classList.add(type);
+  switch (type) {
+    case "error":
+      toastTextElement.innerText = constantStrings.toastError;
+      break;
+    case "addSuccessful":
+      toastTextElement.innerText = constantStrings.toastAddTask;
+      break;
+    case "updateSuccessful":
+      toastTextElement.innerText = constantStrings.toastUpdateTask;
+      break;
+    case "deleteSuccessful":
+      toastTextElement.innerText = constantStrings.toastDeleteTask;
+      break;
+    default:
+      break;
+  }
+  setTimeout(() => {
+    closeToast();
+  }, 2700);
 }
 //#endregion
